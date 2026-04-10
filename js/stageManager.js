@@ -576,7 +576,10 @@ class LevelStage extends BaseStage {
                 this.state = 'playing';
                 this.game.gameState = 'playing';
                 this.game.pacman.pauseMovement(false);
-                this.game.ghosts.forEach(g => g.pauseMovement(false));
+                const ghosts = this.game.ghosts;
+                for (let i = 0; i < ghosts.length; i++) {
+                    ghosts[i].pauseMovement(false);
+                }
                 this.game.soundManager.playSiren();
             }
             return null;
@@ -594,7 +597,10 @@ class LevelStage extends BaseStage {
             this.game.nextLevel();
         }
 
-        this.game.ghosts.forEach(g => g.update(deltaTime));
+        const ghosts = this.game.ghosts;
+        for (let i = 0; i < ghosts.length; i++) {
+            ghosts[i].update(deltaTime);
+        }
 
         this.game.pelletFlashTimer += deltaTime;
         if (this.game.pelletFlashTimer > 200) {
@@ -602,36 +608,45 @@ class LevelStage extends BaseStage {
             this.game.pelletFlash = !this.game.pelletFlash;
         }
 
-        const anyFlash = this.game.ghosts.some(g => g.mode === "flash");
+        let anyFlash = false;
+        let anyFrightened = false;
+        let anyDead = false;
+        
+        for (let i = 0; i < ghosts.length; i++) {
+            const mode = ghosts[i].mode;
+            if (mode === "flash") anyFlash = true;
+            if (mode === "frightened" || mode === "flash") anyFrightened = true;
+            if (mode === "dead") anyDead = true;
+        }
+        
         if (anyFlash) {
             this.game.powerPelletFlash = this.game.pelletFlash;
         } else {
             this.game.powerPelletFlash = false;
         }
         
-        const anyFrightened = this.game.ghosts.some(g => g.mode === "frightened" || g.mode === "flash");
-        const anyDead = this.game.ghosts.some(g => g.mode === "dead");
+        const soundManager = this.game.soundManager;
         
         if (anyDead) {
-            if (this.game.soundManager.frightAudio) {
-                this.game.soundManager.stopFright();
+            if (soundManager.frightAudio) {
+                soundManager.stopFright();
             }
-            if (!this.game.soundManager.eyesAudio) {
-                this.game.soundManager.playEyes();
+            if (!soundManager.eyesAudio) {
+                soundManager.playEyes();
             }
-            this.game.soundManager.stopSiren();
+            soundManager.stopSiren();
         } else if (anyFrightened) {
-            if (this.game.soundManager.eyesAudio) {
-                this.game.soundManager.stopEyes();
+            if (soundManager.eyesAudio) {
+                soundManager.stopEyes();
             }
-            if (!this.game.soundManager.frightAudio) {
-                this.game.soundManager.playFright();
+            if (!soundManager.frightAudio) {
+                soundManager.playFright();
             }
-            this.game.soundManager.stopSiren();
-        } else if (this.game.soundManager.frightAudio || this.game.soundManager.eyesAudio) {
-            this.game.soundManager.stopFright();
-            this.game.soundManager.stopEyes();
-            this.game.soundManager.playSiren();
+            soundManager.stopSiren();
+        } else if (soundManager.frightAudio || soundManager.eyesAudio) {
+            soundManager.stopFright();
+            soundManager.stopEyes();
+            soundManager.playSiren();
         }
         
         this.checkCollisions();

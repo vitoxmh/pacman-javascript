@@ -57,9 +57,12 @@ class scoreManager {
         this.sprite.renderText("1up", 45, -49, 5);
         this.sprite.renderText(this.getHighScore().toString(), 250, -30, 5);
         this.sprite.renderText(this.getScore().toString(), 50, -30, 5);
-        localStorage.setItem('highScore', this.getHighScore());
 
         this.draw();
+    }
+    
+    saveHighScore() {
+        localStorage.setItem('highScore', this.getHighScore());
     }
 
     draw(){

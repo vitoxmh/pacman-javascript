@@ -83,7 +83,7 @@ class pacman {
     // 🔹 Método principal de movimiento por tiles
     update(deltaTime = 16) {
 
-
+ 
 
         if (this.paused) return;
 
@@ -246,40 +246,27 @@ class pacman {
     }
 
     draw() {
+        const w = this.tileSize * 2;
+        const dx = this.x * w - 5;
+        const dy = this.y * w - 5;
 
-        const dx = this.x * this.tileSize * 2 -5;
-        const dy = this.y * this.tileSize * 2 - 5;
-
-
-
-
-        const radius = this.tileSize; // tamaño de Pac-Man
-        const mouthAngle = this.mouthOpen * 0.35 * Math.PI; // ángulo de apertura
-
-        let spritePacman = this.sprite.getSprite(CONFIG.pacman.type,this.animFrame);
-
-        if(this.paused){
-
-            //spritePacman = this.sprite.getSprite('empty');
+        if (!this.visible) {
+            this.sprite.renderSprite(dx, dy, this.sprite.getSprite('empty'));
+            return;
         }
 
-
-            if (!this.visible) {
-
-                spritePacman = this.sprite.getSprite('empty');
-
-            }
+        let spritePacman = this.sprite.getSprite(CONFIG.pacman.type, this.animFrame);
 
         let reverse = false;
         let rotation = 0;
-        if (this.direction === 'right') rotation = 0;
-        if (this.direction === 'down') rotation = Math.PI / 2;
-        if (this.direction === 'left') { rotation = 0; reverse = true; }
-        if (this.direction === 'up') rotation = -Math.PI / 2;
+        switch (this.direction) {
+            case 'down': rotation = Math.PI / 2; break;
+            case 'left': rotation = 0; reverse = true; break;
+            case 'up': rotation = -Math.PI / 2; break;
+        }
 
         this.sprite.renderSprite(dx, dy, spritePacman, rotation, reverse);
     }
-
 
     isVisible(visible) {
         this.visible = visible;

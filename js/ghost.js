@@ -13,6 +13,11 @@ class Ghost {
         this.blinky = blinky;
         
         this.coloredSpriteCache = {};
+        this.colorMap = { 'pink': 7, 'cyan': 8, 'orange': 9 };
+        this.w = size * 2;
+        this.drawOffset = size - 5;
+        
+        this.ghostConfig = CONFIG.ghost;
 
         this.x = startX;
         this.y = startY;
@@ -27,7 +32,7 @@ class Ghost {
         // Animación
         this.animFrame = 0;
         this.animTime = 0;
-        this.animSpeed = CONFIG.ghost.animSpeed;
+        this.animSpeed = this.ghostConfig.animSpeed;
 
         // --------- NUEVOS MODOS ----------
         this.mode = "scatter"; // scatter | chase | frightened | flash | dead | house
@@ -83,9 +88,9 @@ class Ghost {
         this.reviveY = 15;
 
 
-        if (color === "pink")   this.exitDelay = CONFIG.ghost.exitDelay.pink;
-        if (color === "cyan")   this.exitDelay = CONFIG.ghost.exitDelay.cyan;
-        if (color === "orange") this.exitDelay = CONFIG.ghost.exitDelay.orange;
+        if (color === "pink")   this.exitDelay = this.ghostConfig.exitDelay.pink;
+        if (color === "cyan")   this.exitDelay = this.ghostConfig.exitDelay.cyan;
+        if (color === "orange") this.exitDelay = this.ghostConfig.exitDelay.orange;
 
 
          // Todos menos Blinky empiezan dentro de la casa
@@ -280,13 +285,13 @@ class Ghost {
 
 
 
-
         // Velocidad según modo
-        this.speedFactor = (this.mode === "dead") ? (CONFIG.ghost.deadSpeed / CONFIG.ghost.baseSpeed) : 
-                        (this.mode === "frightened" || this.mode === "flash") ? (CONFIG.ghost.frightenedSpeed / CONFIG.ghost.baseSpeed) : 1;
+        const gc = this.ghostConfig;
+        this.speedFactor = (this.mode === "dead") ? (gc.deadSpeed / gc.baseSpeed) : 
+                        (this.mode === "frightened" || this.mode === "flash") ? (gc.frightenedSpeed / gc.baseSpeed) : 1;
 
         if(this.mode === "reviving" || this.mode === "house"){
-            this.speedFactor = CONFIG.ghost.houseSpeed / CONFIG.ghost.baseSpeed;
+            this.speedFactor = gc.houseSpeed / gc.baseSpeed;
         }
 
 
@@ -399,11 +404,11 @@ class Ghost {
 
         }
 
-        let baseSpeed = CONFIG.ghost.baseSpeed;
+        let baseSpeed = gc.baseSpeed;
 
         const currentTile = this.map[row]?.[col];
         if (currentTile === 39) {
-            baseSpeed = CONFIG.ghost.tunnelSpeed;
+            baseSpeed = gc.tunnelSpeed;
         }
 
         const moveStep = baseSpeed * seconds * this.speedFactor;
@@ -411,20 +416,20 @@ class Ghost {
 
         // --- MODO TIMERS ---
         this.modeTimer += seconds;
-        if (this.mode === "scatter" && this.modeTimer >= CONFIG.ghost.scatterDuration) {
+        if (this.mode === "scatter" && this.modeTimer >= gc.scatterDuration) {
             this.mode = "chase"; this.modeTimer = 0;
-        } else if (this.mode === "chase" && this.modeTimer >= CONFIG.ghost.chaseDuration) {
+        } else if (this.mode === "chase" && this.modeTimer >= gc.chaseDuration) {
             this.mode = "scatter"; this.modeTimer = 0;
         }
 
         if (this.mode === "frightened") {
             this.frightenedTimer += seconds;
-            if (this.frightenedTimer >= CONFIG.ghost.frightenedDuration) {
+            if (this.frightenedTimer >= gc.frightenedDuration) {
                 this.mode = "flash"; this.frightenedTimer = 0;
             }
         } else if (this.mode === "flash") {
             this.flashTime += seconds;
-            if (this.flashTime >= CONFIG.ghost.flashDuration) {
+            if (this.flashTime >= gc.flashDuration) {
                 this.mode = "chase"; this.flashTime = 0;
             }
         }
@@ -522,103 +527,55 @@ class Ghost {
     // DRAW
     // --------------------------------------
     draw() {
-
-
-        const ctx = this.ctx;
-        const w = this.tileSize * 2;
-
-        let dx = this.x * w - 5;
-        let dy = this.y * w - 5;
-        
-
-        // DEAD MODE (solo ojos)
-       
-
-        // NORMAL / FRIGHTENED / FLASH
-        let bodyColor = this.color;
-     
-        // ojos (excepto frightened)
-        if (this.mode !== "frightened" && this.mode !== "flash") {
-         
-        }
+        const dx = this.x * this.w - this.drawOffset;
+        const dy = this.y * this.w - this.drawOffset;
 
         let reverse = false;
         let ghostSpriteGet = 'ghost';
+        let frame = this.animFrame;
 
         if (this.mode === "dead") {
-            
-            reverse = false; 
-            ghostSpriteGet = 'eyes-'+this.direction;
-
-        }else if (this.mode === "flash"){
-
-          ghostSpriteGet = this.animFrame === 0 ? 'ghost-frightened' : 'ghost-flash';
-
-
-        }else if(this.mode === "frightened"){
-
-            reverse = false; 
+            ghostSpriteGet = 'eyes-' + this.direction;
+            frame = 0;
+        } else if (this.mode === "flash") {
+            ghostSpriteGet = this.animFrame === 0 ? 'ghost-frightened' : 'ghost-flash';
+        } else if (this.mode === "frightened") {
             ghostSpriteGet = 'ghost-frightened';
-            
-        }else if (this.direction === 'right'){
-
-            reverse = false; 
-            ghostSpriteGet = 'ghost';
-
-        }else if (this.direction === 'left') {
-
-            reverse = true; 
-            ghostSpriteGet = 'ghost';
-
-        }else if (this.direction === 'up'){
-
-             reverse = false; 
-             ghostSpriteGet = 'ghost-up';
-
-        }else if(this.direction === 'down'){
-
-            reverse = false; 
-            ghostSpriteGet = 'ghost-down';
-
-
+        } else if (this.mode === "eaten") {
+            this.sprite.renderSprite(dx, dy, this.sprite.getSprite('empty'));
+            return;
+        } else {
+            switch (this.direction) {
+                case 'left': reverse = true; break;
+                case 'up': ghostSpriteGet = 'ghost-up'; break;
+                case 'down': ghostSpriteGet = 'ghost-down'; break;
+            }
         }
 
-
-        let ghostSprites = this.sprite.getSprite(ghostSpriteGet,this.animFrame);
-
-        let ghostSpritesColor = ghostSprites;
-
-        if (this.color !== 'red' && this.mode !== "dead" && this.mode !== "eaten" && this.mode !== "eyes-left" && this.mode !== "eyes-right" && this.mode !== "eyes-up" && this.mode !== "eyes-down") {
-            const cacheKey = `${ghostSpriteGet}-${this.animFrame}-${this.color}`;
-            
+        const sprite = this.sprite;
+        
+        if (this.color === 'red' || this.mode === "dead") {
+            const cached = sprite.getRenderedSprite(ghostSpriteGet, frame);
+            if (cached) {
+                sprite.renderCachedSprite(dx, dy, cached, reverse);
+            } else {
+                sprite.renderSprite(dx, dy, sprite.getSprite(ghostSpriteGet, frame), 0, reverse);
+            }
+        } else {
+            const cacheKey = ghostSpriteGet + '-' + frame + '-' + this.color;
             if (!this.coloredSpriteCache[cacheKey]) {
-                const colorMap = { 'pink': 7, 'cyan': 8, 'orange': 9 };
-                const newColor = colorMap[this.color];
-                
-                this.coloredSpriteCache[cacheKey] = ghostSprites.map(fila =>
+                const ghostData = sprite.getSprite(ghostSpriteGet, frame);
+                const newColor = this.colorMap[this.color];
+                this.coloredSpriteCache[cacheKey] = ghostData.map(fila =>
                     fila.map(valor => valor === 4 ? newColor : valor)
                 );
             }
-            
-            ghostSpritesColor = this.coloredSpriteCache[cacheKey];
+            sprite.renderSprite(dx, dy, this.coloredSpriteCache[cacheKey], 0, reverse);
         }
 
-        if(this.mode === "eaten"){
-            ghostSpritesColor = this.sprite.getSprite('empty');
-        }
-
-        
-
-
-        this.sprite.renderSprite(dx,dy,ghostSpritesColor,0,reverse);
-
-
-        if(this.degMode){
+        if (this.degMode) {
             this.debugDraw();
-
         }
-        
-        ctx.restore();
     }
 
     // --------------------------------------
@@ -818,7 +775,7 @@ class Ghost {
         this.exitTimer += seconds * 1000;
 
         // Velocidad constante en la casa (igual en X y en Y)
-        const houseSpeed = CONFIG.ghost.houseSpeed;
+        const houseSpeed = this.ghostConfig.houseSpeed;
 
         // ------------------------------------------------------------
         //    SI AÚN NO DEBE SALIR → SOLO ARRIBA/ABAJO
@@ -900,7 +857,7 @@ class Ghost {
 
 
     updateDead(seconds) {
-        const speed = CONFIG.ghost.deadSpeed;
+        const speed = this.ghostConfig.deadSpeed;
         
         const dx = this.doorX - this.x;
         const dy = this.doorY - this.y;
@@ -925,7 +882,7 @@ class Ghost {
     }
 
     updateReviving(seconds) {
-        const speed = CONFIG.ghost.houseSpeed * 2;
+        const speed = this.ghostConfig.houseSpeed * 2;
         const exitY = 11;
         
         if (this.y > exitY) {

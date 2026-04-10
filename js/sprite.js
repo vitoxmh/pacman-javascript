@@ -1849,12 +1849,84 @@ class sprite{
 
         this.spriteCache = new Map();
         this.tileCache = new Map();
+        this.renderedCache = new Map();
         
         this._colorArray = new Array(20);
         for(let i = 0; i < 20; i++) {
             this._colorArray[i] = this.color[i] || '#000';
         }
+        
+        this.initRenderedCache();
 
+    }
+    
+    initRenderedCache() {
+        const spriteNames = ['ghost', 'ghost-up', 'ghost-down', 'ghost-frightened', 'ghost-flash',
+            'eyes-up', 'eyes-down', 'eyes-left', 'eyes-right', 'pointGhost',
+            'mspacman', 'pacman', 'empty'];
+        
+        const dirs = ['up', 'down', 'left', 'right'];
+        
+        for (const name of spriteNames) {
+            if (name.startsWith('eyes-')) continue;
+            for (let frame = 0; frame < 3; frame++) {
+                this.getRenderedSprite(name, frame);
+            }
+        }
+        
+        for (const dir of dirs) {
+            this.getRenderedSprite('eyes-' + dir, 0);
+        }
+        
+        for (let frame = 0; frame < 3; frame++) {
+            this.getRenderedSprite('pointGhost', frame);
+        }
+    }
+    
+    getRenderedSprite(name, frame) {
+        const cacheKey = name + '-' + frame;
+        
+        if (this.renderedCache.has(cacheKey)) {
+            return this.renderedCache.get(cacheKey);
+        }
+        
+        const spriteData = this.getSprite(name, frame);
+        if (!spriteData) return null;
+        
+        const offscreen = document.createElement('canvas');
+        offscreen.width = spriteData[0].length * this.width;
+        offscreen.height = spriteData.length * this.width;
+        const offCtx = offscreen.getContext('2d');
+        
+        this.drawSpriteToContext(offCtx, spriteData, 0, 0, this.width, this._colorArray);
+        
+        this.renderedCache.set(cacheKey, offscreen);
+        return offscreen;
+    }
+    
+    drawSpriteToContext(ctx, sprites, offsetX, offsetY, w, colorArray) {
+        const groups = [];
+        for (let i = 0; i < 15; i++) groups.push([]);
+        
+        for (let y = 0; y < sprites.length; y++) {
+            const row = sprites[y];
+            for (let x = 0; x < row.length; x++) {
+                const value = row[x];
+                if (value === 0) continue;
+                groups[value].push(x * w + offsetX, y * w + offsetY);
+            }
+        }
+        
+        for (let i = 0; i < groups.length; i++) {
+            const p = groups[i];
+            if (p.length === 0) continue;
+            ctx.fillStyle = colorArray[i];
+            ctx.beginPath();
+            for (let j = 0; j < p.length; j += 2) {
+                ctx.rect(p[j], p[j + 1], w, w);
+            }
+            ctx.fill();
+        }
     }
 
     renderStageToBuffer(stage) {
@@ -1965,9 +2037,32 @@ class sprite{
             this.drawSpritePixels(sprites, flash, startX - spriteWidth / 2, startY - spriteHeight / 2);
         }
     }
+    
+    renderCachedSprite(dx, dy, canvas, reverse = false) {
+        if (!canvas) return;
+        
+        const w = canvas.width;
+        const h = canvas.height;
+        const cx = dx + w / 2;
+        const cy = dy + h / 2 + this.paddingTop;
+        
+        this.ctx.save();
+        this.ctx.translate(cx, cy);
+        
+        if (reverse) {
+            this.ctx.scale(-1, 1);
+        }
+        
+        this.ctx.drawImage(canvas, -w / 2, -h / 2);
+        this.ctx.restore();
+    }
 
     drawSpritePixels(sprites, flash, offsetX = 0, offsetY = 0) {
-        const colorMap = new Map();
+        const ctx = this.ctx;
+        const w = this.width;
+        const colorArray = this._colorArray;
+        
+        const pixels = [];
         
         for (let y = 0; y < sprites.length; y++) {
             const row = sprites[y];
@@ -1976,6 +2071,7 @@ class sprite{
                 if (value === 0) continue;
                 
                 let colorIndex = value;
+                
                 if (flash === 1 && (value === 1 || value === 2)) {
                     colorIndex = 5;
                 } else if (flash === 2 && value === 47) {
@@ -1987,23 +2083,29 @@ class sprite{
                 } else if (flash === 5 && value === 12) {
                     colorIndex = 5;
                 } else if (flash === 5 && value === 13) {
-                    colorIndex = 0;
+                    continue;
                 }
                 
-                if (!colorMap.has(colorIndex)) {
-                    colorMap.set(colorIndex, []);
-                }
-                colorMap.get(colorIndex).push({x: x * this.width + offsetX, y: y * this.width + offsetY});
+                pixels.push(colorIndex, x * w + offsetX, y * w + offsetY);
             }
         }
         
-        for (const [colorIndex, pixels] of colorMap) {
-            this.ctx.fillStyle = this._colorArray[colorIndex];
-            this.ctx.beginPath();
-            for (const p of pixels) {
-                this.ctx.rect(p.x, p.y, this.width, this.width);
+        const groups = [];
+        for (let i = 0; i < 15; i++) groups.push([]);
+        
+        for (let i = 0; i < pixels.length; i += 3) {
+            groups[pixels[i]].push(pixels[i + 1], pixels[i + 2]);
+        }
+        
+        for (let i = 0; i < groups.length; i++) {
+            const p = groups[i];
+            if (p.length === 0) continue;
+            ctx.fillStyle = colorArray[i];
+            ctx.beginPath();
+            for (let j = 0; j < p.length; j += 2) {
+                ctx.rect(p[j], p[j + 1], w, w);
             }
-            this.ctx.fill();
+            ctx.fill();
         }
     }
 
@@ -2020,34 +2122,36 @@ class sprite{
             return;
         }
 
-        stage.forEach((row,y) => {
-
-            row.forEach((value,x) => {
-              
-                let _x = x * 8 * this.width;
-                let _y = y * 8 * this.width;
-                if(value != 0){
-                    if (intro && (value === 46 || value === 47)) return;
-                    if (flashLevel === 1 && (value >= 1 && value <= 45)) {
-                        this.renderSprite(_x, _y, this.getTiled(value), 0, false, 1);
-                    } else if (flashLevel === 5 && (value >= 1 && value <= 45)) {
-                        this.renderSprite(_x, _y, this.getTiled(value), 0, false, 5);
-                    } else if (flashPellets === 2 && value === 47) {
-                        this.renderSprite(_x, _y, this.getTiled(value), 0, false, 2);
-                    } else if (flashPowerPellets === 3 && value === 47) {
-                        this.renderSprite(_x, _y, this.getTiled(value), 0, false, 3);
-                    } else if (flashColor12 && (value >= 1 && value <= 45)) {
-                        this.renderSprite(_x, _y, this.getTiled(value), 0, false, 4);
-                    } else if (intro && (value >= 1 && value <= 45)) {
-                        return;
-                    } else {
-                        this.renderSprite(_x, _y, this.getTiled(value));
-                    }
+        const sw = 8 * this.width;
+        const getTiled = this.getTiled.bind(this);
+        
+        for (let y = 0; y < stage.length; y++) {
+            const row = stage[y];
+            const _y = y * sw;
+            for (let x = 0; x < row.length; x++) {
+                const value = row[x];
+                if (value === 0) continue;
+                
+                const _x = x * sw;
+                
+                if (intro && (value === 46 || value === 47)) continue;
+                if (flashLevel === 1 && value >= 1 && value <= 45) {
+                    this.renderSprite(_x, _y, getTiled(value), 0, false, 1);
+                } else if (flashLevel === 5 && value >= 1 && value <= 45) {
+                    this.renderSprite(_x, _y, getTiled(value), 0, false, 5);
+                } else if (flashPellets === 2 && value === 47) {
+                    this.renderSprite(_x, _y, getTiled(value), 0, false, 2);
+                } else if (flashPowerPellets === 3 && value === 47) {
+                    this.renderSprite(_x, _y, getTiled(value), 0, false, 3);
+                } else if (flashColor12 && value >= 1 && value <= 45) {
+                    this.renderSprite(_x, _y, getTiled(value), 0, false, 4);
+                } else if (intro && value >= 1 && value <= 45) {
+                    continue;
+                } else {
+                    this.renderSprite(_x, _y, getTiled(value));
                 }
-      
-            });
-
-        });
+            }
+        }
 
     }
 

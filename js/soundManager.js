@@ -9,9 +9,10 @@ class soundManager{
     sounds = [];
     sirenSounds = [];
     isDemo = false;
+    isLoaded = false;
 
     constructor() {
-        this.loadSounds();
+        this.loadSoundsAsync();
     }
 
     setDemoMode(value) {
@@ -23,11 +24,12 @@ class soundManager{
         }
     }
 
-    loadSounds() {
+    loadSoundsAsync() {
         const isMsPacman = CONFIG.pacman.type === 'mspacman';
         
         const createAudio = (src) => {
-            const audio = new Audio(src);
+            const audio = document.createElement('audio');
+            audio.src = src;
             audio.preload = 'auto';
             return audio;
         };
@@ -56,117 +58,105 @@ class soundManager{
             ];
         }
 		
-		
 		this.listSound = {
-			credit: new Audio(this.path+"credit.wav"),
-			eatGhost: new Audio(isMsPacman ? this.path+"mspacman/ms_eat_ghost.wav" : this.path+"eat_ghost.wav"),
-			start: new Audio(isMsPacman ? this.path+"mspacman/ms_start.wav" : this.path+"start.wav")
-		}
+			credit: createAudio(this.path+"credit.wav"),
+			eatGhost: createAudio(isMsPacman ? this.path+"mspacman/ms_eat_ghost.wav" : this.path+"eat_ghost.wav"),
+			start: createAudio(isMsPacman ? this.path+"mspacman/ms_start.wav" : this.path+"start.wav")
+        }
+        
+        for (const key in this.listSound) {
+            this.listSound[key].preload = 'auto';
+        }
+        
+        for (const audio of this.sirenSounds) {
+            audio.preload = 'auto';
+        }
+        
+        this.isLoaded = true;
     }
 
     index = 0;
 
 
     play(theme = null){
-        if (this.isDemo) return;
-
-        const isMsPacman = CONFIG.pacman.type === 'mspacman';
+        if (this.isDemo || !this.isLoaded) return;
 
         switch(theme){
-
             case "credit":
-
-                //this.audio = new Audio(this.path+"credit.wav");
-				this.listSound.credit.play();
-
+                this.listSound.credit.currentTime = 0;
+                this.listSound.credit.play();
             break;
-
             case "eat-ghost":
-                //this.listSound.eatGhost.play();
-				this.listSound.eatGhost.play();
+                this.listSound.eatGhost.currentTime = 0;
+                this.listSound.eatGhost.play();
             break;
-
             case "start":
-                 //this.audio = new Audio(isMsPacman ? this.path+"mspacman/ms_start.wav" : this.path+"start.wav");
-				 this.listSound.start.play();
-
+                this.listSound.start.currentTime = 0;
+                this.listSound.start.play();
             break;
-            
-
         }
-        
-        //if(this.audio)  this.audio.play();
-       
-
     }
 
 
     playWaka() {
-        if (this.isDemo) return;
+        if (this.isDemo || !this.isLoaded) return;
 
         const audio = this.sounds[this.index];
         audio.currentTime = 0;
         audio.play();
 
-        // alternar entre 0 y 1
         this.index = (this.index + 1) % this.sounds.length;
     }
 
 
-
     playFright() {
-        if (this.isDemo) return;
+        if (this.isDemo || !this.isLoaded) return;
 
-        // 🔊 sonido inicial
-        this.frightAudio = new Audio(this.path + "fright.wav");
+        this.frightAudio = document.createElement('audio');
+        this.frightAudio.src = this.path + "fright.wav";
         this.frightAudio.loop = true;
         this.frightAudio.play();
-
     }
 
 
     stopFright(){
         if (this.frightAudio) {
             this.frightAudio.pause();
-            this.frightAudio.currentTime = 0;
             this.frightAudio = null;
         }
-        if (this.eyesAudio) {
-            this.eyesAudio.pause();
-            this.eyesAudio.currentTime = 0;
-            this.eyesAudio = null;
-        }
+        this.stopEyes();
     }
 
 
     playEyes() {
-        if (this.isDemo) return;
+        if (this.isDemo || !this.isLoaded) return;
 
         const isMsPacman = CONFIG.pacman.type === 'mspacman';
-        const audio = new Audio(isMsPacman ? this.path + "mspacman/ms_eyes.wav" : this.path + "eyes.wav");
-        audio.loop = true;
-        audio.play();
-        this.eyesAudio = audio;
-    
+        this.eyesAudio = document.createElement('audio');
+        this.eyesAudio.src = isMsPacman ? this.path + "mspacman/ms_eyes.wav" : this.path + "eyes.wav";
+        this.eyesAudio.loop = true;
+        this.eyesAudio.play();
     }
 
     stopEyes(){
         if (this.eyesAudio) {
             this.eyesAudio.pause();
-            this.eyesAudio.currentTime = 0;
             this.eyesAudio = null;
         }
     }
 
     playSiren() {
-        if (this.isDemo) return;
+        if (this.isDemo || !this.isLoaded) return;
         
-        if (!this.sirenAudio) {
-            this.sirenIndex = 0;
-            this.sirenAudio = this.sirenSounds[0];
-            this.sirenAudio.loop = true;
-            this.sirenAudio.play();
+        if (this.sirenAudio) {
+            this.sirenAudio.pause();
         }
+        
+        this.sirenIndex = 0;
+        this.sirenAudio = this.sirenSounds[0];
+        this.sirenAudio.loop = true;
+        this.sirenAudio.currentTime = 0;
+        this.sirenAudio.play();
     }
 
     updateSirenLevel(pelletCount, maxPellets) {
@@ -175,8 +165,9 @@ class soundManager{
         const level = Math.min(4, Math.floor(4 * (1 - pelletCount / maxPellets)) + 1);
         
         if (level !== this.sirenIndex + 1) {
-            this.sirenIndex = level - 1;
             this.sirenAudio.pause();
+            this.sirenAudio.currentTime = 0;
+            this.sirenIndex = level - 1;
             this.sirenAudio = this.sirenSounds[this.sirenIndex];
             this.sirenAudio.loop = true;
             this.sirenAudio.play();
@@ -186,19 +177,15 @@ class soundManager{
     stopSiren() {
         if (this.sirenAudio) {
             this.sirenAudio.pause();
-            this.sirenAudio.currentTime = 0;
             this.sirenAudio = null;
         }
         this.sirenIndex = 0;
     }
 
-
-
-
     stop(){
-
-        this.audio.pause();
-
+        this.stopSiren();
+        this.stopFright();
+        this.stopEyes();
     }
 
 }

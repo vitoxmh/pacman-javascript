@@ -39,7 +39,7 @@ class game{
         
             this.lastTime = performance.now();
             this.canvas = document.getElementById(canvas);
-            this.ctx = this.canvas.getContext('2d', { alpha: false, desynchronized: true });
+            this.ctx = this.canvas.getContext('2d', { alpha: false, willReadFrequently: false });
             this.ctx.imageSmoothingEnabled = false;
             this.ctx.scale(1,1);
             this.ctx.fillStyle = "#000000";
@@ -433,8 +433,7 @@ class game{
 
 
     clearScreen(){
-        this.ctx.fillStyle = "#000";
-        this.ctx.fillRect(0,0,this.canvas.width,this.canvas.height); 
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
 
