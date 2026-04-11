@@ -1,10 +1,8 @@
-function copyMap(map) {
-    return map.map(row => row.slice());
-}
-
-class game{
-
-    pacman =  null;
+/**
+ * Main Game Class - Manages game loop, state transitions, and core systems
+ */
+class Game {
+    pacman = null;
     tileSize = CONFIG.game.tileSize;
     speed = CONFIG.pacman.speed;
     paused = false;
@@ -34,12 +32,27 @@ class game{
     stageCanvas = null;
     stageCtx = null;
     lastRenderedStage = null;
+    ghosts = [];
+    pelletCount = 0;
+    readyTimer = 0;
+    globalEatPause = true;
+    globalEatTimer = 0;
+    lastTime = 0;
+    canvas = null;
+    ctx = null;
+    sprite = null;
+    stages = null;
+    scoreManager = null;
+    soundManager = null;
 
-    constructor(canvas){
-        
-            this.lastTime = performance.now();
-            this.canvas = document.getElementById(canvas);
-            this.ctx = this.canvas.getContext('2d', { alpha: false, willReadFrequently: false });
+    /**
+     * Initialize the game
+     * @param {string} canvasId - The ID of the canvas element
+     */
+    constructor(canvasId) {
+        this.lastTime = performance.now();
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext('2d', { alpha: false, willReadFrequently: false });
             this.ctx.imageSmoothingEnabled = false;
             this.ctx.scale(1,1);
             this.ctx.fillStyle = "#000000";
@@ -54,17 +67,17 @@ class game{
             this.sprite = new sprite(this.ctx, this.stageCtx);
             this.sprite.setTileColors(1);
             this.sprite.updateStageBuffer(this.actualStage);
-            this.stages = new stage();
-            this.pacman = new pacman(this.ctx,this.sprite,this.tileSize);
+            this.stages = new Stage();
+            this.pacman = new Pacman(this.ctx, this.sprite, this.tileSize);
             this.pacman.game = this;
             this.actualStage = this.stages.map(1);
             this.originalMap = copyMap(this.actualStage);
-            this.pacman.setMap( this.actualStage );
+            this.pacman.setMap(this.actualStage);
             this.initPelletCount();
-            this.scoreManager = new scoreManager(this.sprite, this);
+            this.scoreManager = new ScoreManager(this.sprite, this);
             this.scoreManager.setLives(this.lives);
             this.pacman.setScoreManager(this.scoreManager);
-            this.soundManager = new soundManager();
+            this.soundManager = new SoundManager();
             this.readyTimer = CONFIG.game.readyTimer;
             this.gameState = "intro";
             this.introTimer = 0;

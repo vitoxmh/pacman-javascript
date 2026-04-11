@@ -8,10 +8,6 @@ const STAGE_TYPE = {
     CREDITS: 'credits'
 };
 
-function copyMap(map) {
-    return map.map(row => row.slice());
-}
-
 class StageManager {
 
     constructor(game) {
@@ -387,13 +383,13 @@ class IntroStage extends BaseStage {
             
              
 
-            this.x = this.x - 0.9 * direction;
+            this.x = this.x - 1.74 * direction;
             
             const pacmanSprite = sprite.getSprite(CONFIG.pacman.type,this.animFrame);
           
             sprite.renderSprite(this.x,300,pacmanSprite,0,(direction === 1));
 
-            this.xGhost = this.xGhost - (direction === 1 ? 0.9 : 0.55) * direction;
+            this.xGhost = this.xGhost - (direction === 1 ? 1.73 : 1.03) * direction;
          
 
             if(this.timer < 13650){
@@ -451,7 +447,7 @@ class IntroStage extends BaseStage {
             }
 
 
-            if(this.timer < 19000){
+            if(this.timer < 18500){
 
                 this.ghostAniation((this.xGhost+90), 3, direction);
 

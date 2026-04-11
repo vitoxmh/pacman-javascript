@@ -1,4 +1,8 @@
-class scoreManager {
+/**
+ * Score Manager - Handles scoring, high scores, and fruit mechanics
+ * Centralizes all score-related logic
+ */
+class ScoreManager {
 
     highScore = 0;
     score = 0;

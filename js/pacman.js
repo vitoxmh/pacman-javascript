@@ -1,6 +1,8 @@
-class pacman {
-
-
+/**
+ * Pacman Player Class
+ * Handles player movement, animation, collision detection, and game logic
+ */
+class Pacman {
     constructor(ctx, sprite, size) {
         this.ctx = ctx;
         this.sprite = sprite;
@@ -9,7 +11,7 @@ class pacman {
         this.direction = 'right';
         this.nextDirection = 'right';
         this.map = [];
-        this.paused = false; 
+        this.paused = false;
         this.visible = true;
         this.scoreManager = null;
         this.game = null;
@@ -27,57 +29,107 @@ class pacman {
         this.animSpeed = CONFIG.pacman.animSpeed;
         this.mouthOpen = 2;
         this.hasStartedMoving = false;
-        window.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowUp') this.nextDirection = 'up';
-            if (e.key === 'ArrowDown') this.nextDirection = 'down';
-            if (e.key === 'ArrowLeft') this.nextDirection = 'left';
-            if (e.key === 'ArrowRight') this.nextDirection = 'right';
-        });
+        
+        // Input handling
+        this._handleKeyDown = this._handleKeyDown.bind(this);
+        window.addEventListener('keydown', this._handleKeyDown);
+    }
+    
+    /**
+     * Handle keyboard input for player controls
+     * @private
+     */
+    _handleKeyDown(e) {
+        switch (e.key) {
+            case 'ArrowUp': this.nextDirection = 'up'; break;
+            case 'ArrowDown': this.nextDirection = 'down'; break;
+            case 'ArrowLeft': this.nextDirection = 'left'; break;
+            case 'ArrowRight': this.nextDirection = 'right'; break;
+        }
     }
 
+    /**
+     * Set the score manager reference
+     * @param {ScoreManager} scoreManager 
+     */
     setScoreManager(scoreManager) {
         this.scoreManager = scoreManager;
     }
 
- 
-
+    /**
+     * Set the current map data
+     * @param {number[][]} mapData 
+     */
     setMap(mapData) {
         this.map = mapData;
     }
 
+    /**
+     * Enable or disable auto-pilot mode (for demo)
+     * @param {boolean} enabled 
+     */
     setAutoPilot(enabled) {
         this.autoPilot = enabled;
     }
 
+    /**
+     * Get the cell coordinates from position
+     * @param {number} x 
+     * @param {number} y 
+     * @returns {{row: number, col: number}}
+     */
     getCell(x, y) {
         return { row: Math.floor(y), col: Math.floor(x) };
     }
     
 
+    /**
+     * Check if pacman can move in the given direction
+     * @param {number} x 
+     * @param {number} y 
+     * @param {'up'|'down'|'left'|'right'} direction 
+     * @returns {boolean}
+     */
     canMove(x, y, direction) {
-
         const { row, col } = this.getCell(x, y);
-
+        
+        // Check tunnel rows (rows where both ends are open)
         const tunnelRows = [];
         for (let i = 0; i < this.map.length; i++) {
-            if ((this.map[i][0] === 0 || this.map[i][0] === 39) && 
-                (this.map[i][this.map[i].length - 1] === 0 || this.map[i][this.map[i].length - 1] === 39)) {
+            const leftEdge = this.map[i][0];
+            const rightEdge = this.map[i][this.map[i].length - 1];
+            if ((leftEdge === 0 || leftEdge === 39) &&
+                (rightEdge === 0 || rightEdge === 39)) {
                 tunnelRows.push(i);
             }
         }
 
+        // Allow tunnel movement
         if (tunnelRows.includes(row)) {
             if (direction === 'left' && col === 0) return true;
             if (direction === 'right' && col === this.map[0].length - 1) return true;
         }
 
-        if (direction === 'up') return this.map[row - 1]?.[col] === 0 ||  this.map[row - 1]?.[col] === 36 || this.map[row - 1]?.[col] === 37 || this.map[row - 1]?.[col] === 38 || this.map[row - 1]?.[col] === 39;
-        if (direction === 'down') return this.map[row + 1]?.[col] === 0 ||  this.map[row + 1]?.[col] === 36 || this.map[row + 1]?.[col] === 37 || this.map[row + 1]?.[col] === 38 || this.map[row + 1]?.[col] === 39;
-        if (direction === 'left') return this.map[row]?.[col - 1] === 0 ||  this.map[row]?.[col - 1] === 36 || this.map[row]?.[col - 1] === 37 || this.map[row]?.[col - 1] === 38 || this.map[row]?.[col - 1] === 39;
-        if (direction === 'right') return this.map[row]?.[col + 1] === 0 ||  this.map[row]?.[col + 1] === 36 || this.map[row]?.[col + 1] === 37 || this.map[row]?.[col + 1] === 38 || this.map[row]?.[col + 1] === 39;
+        // Define walkable tiles
+        const walkableTiles = [0, 36, 37, 38, 39]; // empty, pellet, power pellet, door, tunnel
         
+        // Check next tile based on direction
+        let nextRow = row;
+        let nextCol = col;
         
-        return false;
+        switch (direction) {
+            case 'up': nextRow = row - 1; break;
+            case 'down': nextRow = row + 1; break;
+            case 'left': nextCol = col - 1; break;
+            case 'right': nextCol = col + 1; break;
+            default: return false;
+        }
+        
+        // Check bounds and walkable tiles
+        if (nextRow < 0 || nextRow >= this.map.length) return false;
+        if (nextCol < 0 || nextCol >= this.map[0].length) return false;
+        
+        return walkableTiles.includes(this.map[nextRow][nextCol]);
     }
 
     // 🔹 Método principal de movimiento por tiles

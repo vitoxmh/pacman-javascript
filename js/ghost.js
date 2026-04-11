@@ -67,54 +67,45 @@ class Ghost {
 
 
 
-        // --- ESTADOS PAC-MAN ORIGINALES ---
-        this.state = "normal";  // inHouse, exiting, normal, dead, reviving
-
-        // Movimiento dentro de la casa
-        this.houseTop = 13.5;
-        this.houseBottom = 14.5;
-        this.houseDir = -1; // sube/baja
-
-        // Punto de entrada/salida
-        this.doorX = 13.5;
-        this.doorY = 14;
-
-        // Timer de salida
-         // ms (puedes personalizar por fantasma)
-        this.exitTimer = 0;
-
-        // Punto exacto de revivir
-        this.reviveX = 13.5;
-        this.reviveY = 15;
-
-
+        // Timing for ghost release from house (milliseconds)
         if (color === "pink")   this.exitDelay = this.ghostConfig.exitDelay.pink;
         if (color === "cyan")   this.exitDelay = this.ghostConfig.exitDelay.cyan;
         if (color === "orange") this.exitDelay = this.ghostConfig.exitDelay.orange;
 
-
-         // Todos menos Blinky empiezan dentro de la casa
+        // Ghost state management
+        this.state = "normal";  // inHouse, exiting, normal, dead, reviving
+        this.hasExitedInitially = false;
+        
+        // Movement inside the house
+        this.houseTop = 13.5;
+        this.houseBottom = 14.5;
+        this.houseDir = -1; // up/down
+        
+        // Entry/exit point
+        this.doorX = 13.5;
+        this.doorY = 14;
+        
+        // Exit timer
+        this.exitTimer = 0;
+        
+        // Revive position
+        this.reviveX = 13.5;
+        this.reviveY = 15;
+        
+        // All ghosts except Blinky start inside the house
         if (color !== "red") {
-
-            //this.mode = "house";
-            this.hasExitedInitially = false;
             this.mode = "house";
-             this.state = "inHouse";
-              this.direction = "up";
-           
+            this.state = "inHouse";
+            this.direction = "up";
         }
-
-
+        
+        // Debug mode (press 'd' to toggle)
         window.addEventListener("keydown", e => {
             if (e.key === "d") {
-
                 this.degMode = !this.degMode;
                 console.log("Debug mode ghosts:", this.degMode);
-                
-              
             }
         });
-                
     }
 
     // --------------------------------------
