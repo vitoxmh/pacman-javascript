@@ -1,9 +1,4 @@
-/**
- * Game Configuration Constants
- * This file contains all configurable game parameters
- */
-
-const CONFIG = Object.freeze({
+const CONFIG = {
     game: {
         tileSize: 8,
         readyTimer: 4.5,
@@ -21,7 +16,7 @@ const CONFIG = Object.freeze({
         animSpeed: 12
     },
 
-    ghost: Object.freeze({
+    ghost: {
         baseSpeed: 7,
         frightenedSpeed: 3.5,
         deadSpeed: 14,
@@ -61,35 +56,35 @@ const CONFIG = Object.freeze({
             inky: { x: 27, y: 1 },
             clyde: { x: 27, y: 30 }
         }
-    }),
+    },
 
-    score: Object.freeze({
+    score: {
         pellet: 10,
         powerPellet: 50,
         ghostEat: [200, 400, 800, 1600],
         fruit: [100, 300, 500, 700, 1000, 2000, 5000],
         fruitAppear: [15, 30]
-    }),
+    },
 
-    fruit: Object.freeze([
-        { x: 13.5, y: 17, sprite: 'cherry' },      // Level 1
-        { x: 13.5, y: 17, sprite: 'strawberry' }, // Level 2
-        { x: 13.5, y: 17, sprite: 'orange' },      // Level 3
-        { x: 13.5, y: 17, sprite: 'apple' },       // Level 4
-        { x: 13.5, y: 17, sprite: 'grape' },      // Level 5
-        { x: 13.5, y: 17, sprite: 'melon' },      // Level 6
-        { x: 13.5, y: 17, sprite: 'galaxian' },   // Level 7+
-    ]),
+    fruit: [
+        { x: 13.5, y: 17, sprite: 'cherry' },      // Nivel 1
+        { x: 13.5, y: 17, sprite: 'strawberry' }, // Nivel 2
+        { x: 13.5, y: 17, sprite: 'orange' },      // Nivel 3
+        { x: 13.5, y: 17, sprite: 'apple' },       // Nivel 4
+        { x: 13.5, y: 17, sprite: 'grape' },      // Nivel 5
+        { x: 13.5, y: 17, sprite: 'melon' },      // Nivel 6
+        { x: 13.5, y: 17, sprite: 'galaxian' },   // Nivel 7+
+    ],
 
-    tileColors: Object.freeze({
+    tileColors: {
         1: { color12: '#0000FF', color13: '#000000' },
         2: { color12: '#FF0000', color13: '#FFB7AE' },
         3: { color12: '#00D900', color13: '#00FF7F' },
         4: { color12: '#00D900', color13: '#00FF7F' }
-    }),
+    },
 
-    debug: Object.freeze({
+    debug: {
         showDebugGrid: false,
         debugModeEnabled: false
-    })
-});
+    }
+};

@@ -1,20 +1,13 @@
-/**
- * Stage Class - Manages stage/map data
- * Handles loading different game levels
- */
-class Stage {
-    constructor() {
-        // Maps are defined in TILE_PATTERNS
+class stage{
+
+    constructor(){
+
     }
 
-    /**
-     * Load map for the given stage number
-     * @param {number} stageNumber - The stage number (1-based)
-     * @returns {number[][]} The map data
-     */
-    map(stageNumber) {
+    
+    map(stage){
 
-        if( stageNumber == 1 ){
+        if( stage == 1 ){
             
             return [
                         [1,5,5,5,5,5,5,5,5,5,5,5,5,7,8,5,5,5,5,5,5,5,5,5,5,5,5,2],
@@ -50,7 +43,7 @@ class Stage {
                         [3,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,4],
                         ];
               
-        } else if( stageNumber == 2 ){
+        } else if( stage == 2 ){
             
             return[
                     [1,5,5,5,5,5,5,7,8,5,5,5,5,5,5,5,5,5,5,7,8,5,5,5,5,5,5,2],
@@ -86,7 +79,7 @@ class Stage {
                     [3,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,4],
                 ];
               
-        } else if( stageNumber == 3 ){
+        } else if( stage == 3 ){
             
             return [
                         [2,11,11,11,11,11,11,11,11,11,11,11,11,44,43,11,11,11,11,11,11,11,11,11,11,11,11,1],
@@ -122,7 +115,7 @@ class Stage {
                         [6,13,13,13,13,13,13,13,13,13,13,13,16,13,13,13,13,13,13,13,13,13,13,13,13,13,13,5],
                     ];
               
-        } else if( stageNumber == 4 ){
+        } else if( stage == 4 ){
             
             return [
                         [2,11,11,11,11,11,11,11,11,11,11,11,11,44,43,11,11,11,11,11,11,11,11,11,11,11,11,1],
@@ -159,7 +152,7 @@ class Stage {
                     ];
               
         } else {
-            return this.map(((stageNumber - 1) % 4) + 1);
+            return this.map(((stage - 1) % 4) + 1);
         }
 
     }
