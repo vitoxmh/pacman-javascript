@@ -27,6 +27,7 @@ class game{
     pelletFlash = false;
     powerPelletFlash = false;
     firstGame = true;
+    firstLife = true;
     maxPelletCount = 0;
     _deltaTime = 0;
     stageManager = null;
@@ -39,17 +40,18 @@ class game{
         
             this.lastTime = performance.now();
             this.canvas = document.getElementById(canvas);
-            this.ctx = this.canvas.getContext('2d', { alpha: false, willReadFrequently: false });
+            this.ctx = this.canvas.getContext('2d', { alpha: false, desynchronized: false });
             this.ctx.imageSmoothingEnabled = false;
-            this.ctx.scale(1,1);
-            this.ctx.fillStyle = "#000000";
-            this.ctx.fillRect(0,0,CONFIG.game.canvas.width,CONFIG.game.canvas.height); 
             
             this.stageCanvas = document.createElement('canvas');
             this.stageCanvas.width = CONFIG.game.canvas.width;
             this.stageCanvas.height = CONFIG.game.canvas.height;
-            this.stageCtx = this.stageCanvas.getContext('2d', { alpha: false });
+            this.stageCtx = this.stageCanvas.getContext('2d', { alpha: false, desynchronized: false });
             this.stageCtx.imageSmoothingEnabled = false;
+
+            this._blackFill = '#000000';
+            this._width = CONFIG.game.canvas.width;
+            this._height = CONFIG.game.canvas.height;
             
             this.sprite = new sprite(this.ctx, this.stageCtx);
             this.sprite.setTileColors(1);
@@ -74,6 +76,8 @@ class game{
 
             this.globalEatPause = true;
             this.globalEatTimer = 0;
+
+            this.selectedCharacter = 0;
 
             this.initGhosts();
 
@@ -106,8 +110,42 @@ class game{
                     this.restartGame(true);
                 }
 
+                if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                    if (this.stageManager.stageType === STAGE_TYPE.SELECT_CHARACTER) {
+                        this.selectedCharacter = this.selectedCharacter === 0 ? 1 : 0;
+                    }
+                }
+
                 if (e.key === "Enter") {
-                    if (this.credits > 0) {
+                    if (this.stageManager.stageType === STAGE_TYPE.SELECT_CHARACTER) {
+                        if (this.credits > 0) {
+                            CONFIG.pacman.type = this.selectedCharacter === 0 ? 'pacman' : 'mspacman';
+                            console.log(`Personaje seleccionado: ${CONFIG.pacman.type}`);
+                            this.pacman.setType(CONFIG.pacman.type);
+                            this.soundManager.loadSounds();
+                            this.soundManager.play("start");
+                            this.credits--;
+                            this.pacman.setAutoPilot(false);
+                            console.log(`Crédito usado. Restantes: ${this.credits}`);
+                            
+                            this.firstLife = true;
+                            this.lives = 3;
+                            this.scoreManager.setLives(this.lives);
+                            this.scoreManager.score = 0;
+                            this.scoreManager.resetFruit();
+                            this.currentLevel = 1;
+                            this.actualStage = this.stages.map(1);
+                            this.originalMap = copyMap(this.actualStage);
+                            this.pacman.setMap(this.actualStage);
+                            this.initPelletCount();
+                            this.initGhosts();
+                            this.stageManager.setStage(STAGE_TYPE.LEVEL, { levelNumber: 1, state: 'ready' });
+                        }
+                    } else if (this.stageManager.stageType === STAGE_TYPE.CREDITS) {
+                        if (this.credits > 0) {
+                            this.stageManager.setStage(STAGE_TYPE.SELECT_CHARACTER);
+                        }
+                    } else if (this.credits > 0) {
                         this.credits--;
                         this.pacman.setAutoPilot(false);
                         console.log(`Crédito usado. Restantes: ${this.credits}`);
@@ -122,10 +160,7 @@ class game{
                         this.pacman.setMap(this.actualStage);
                         this.initPelletCount();
                         this.initGhosts();
-                        this.firstGame = true;
                         this.stageManager.setStage(STAGE_TYPE.LEVEL, { levelNumber: 1, state: 'ready' });
-                    } else if (this.stageManager.stageType === STAGE_TYPE.CREDITS) {
-                        this.stageManager.setStage(STAGE_TYPE.INTRO);
                     } else if (this.stageManager.stageType === STAGE_TYPE.DEMO) {
                         this.lives = 3;
                         this.scoreManager.setLives(this.lives);
@@ -137,7 +172,6 @@ class game{
                         this.pacman.setMap(this.actualStage);
                         this.initPelletCount();
                         this.initGhosts();
-                        this.firstGame = true;
                         this.stageManager.setStage(STAGE_TYPE.LEVEL, { levelNumber: 1, state: 'ready' });
                     }
                 }
@@ -148,7 +182,8 @@ class game{
                     if (this.stageManager.stageType === STAGE_TYPE.INTRO || 
                         this.stageManager.stageType === STAGE_TYPE.GAMEOVER || 
                         this.stageManager.stageType === STAGE_TYPE.CREDITS ||
-                        this.stageManager.stageType === STAGE_TYPE.DEMO) {
+                        this.stageManager.stageType === STAGE_TYPE.DEMO ||
+                        this.stageManager.stageType === STAGE_TYPE.SELECT_CHARACTER) {
                         this.stageManager.setStage(STAGE_TYPE.CREDITS);
                     }
                 }
@@ -160,7 +195,8 @@ class game{
                     if (this.stageManager.stageType === STAGE_TYPE.INTRO || 
                         this.stageManager.stageType === STAGE_TYPE.GAMEOVER || 
                         this.stageManager.stageType === STAGE_TYPE.CREDITS ||
-                        this.stageManager.stageType === STAGE_TYPE.DEMO) {
+                        this.stageManager.stageType === STAGE_TYPE.DEMO ||
+                        this.stageManager.stageType === STAGE_TYPE.SELECT_CHARACTER) {
                         this.stageManager.setStage(STAGE_TYPE.CREDITS);
                     }
                 }
@@ -186,6 +222,7 @@ class game{
 
         this.ghosts = [blinky, pinky, inky, clyde];
         this.pacman.ghosts = this.ghosts;
+        this.ghosts.forEach(g => g.setMap(this.actualStage));
         this.resetPositions();
     }
 
@@ -234,7 +271,6 @@ class game{
             this.originalMap = copyMap(this.actualStage);
             this.pacman.setMap(this.actualStage);
             this.initGhosts();
-            this.firstGame = true;
             this.stageManager.setStage(STAGE_TYPE.INTRO);
             return;
         }
@@ -315,6 +351,7 @@ class game{
         this.flashCount = 0;
         console.log(`Nivel completado! Parpadeando antes del nivel ${this.currentLevel + 1}`);
         
+        this.soundManager.stopAll();
         this.pacman.pauseMovement(true);
         this.ghosts.forEach(g => g.pauseMovement(true));
     }
@@ -370,13 +407,12 @@ class game{
     }
 
     loop(now) {
-
         if (!this.paused || this.step) {
-
             let deltaTime = now - this.lastTime;
             this.lastTime = now;
 
             if (deltaTime > 100) deltaTime = 16;
+            if (deltaTime < 1) deltaTime = 16;
         
             this.update(deltaTime);
 
@@ -433,7 +469,8 @@ class game{
 
 
     clearScreen(){
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.fillStyle = this._blackFill;
+        this.ctx.fillRect(0,0,this._width,this._height); 
     }
 
 

@@ -5,7 +5,8 @@ const STAGE_TYPE = {
     ANIMATION: 'animation',
     GAMEOVER: 'gameover',
     WIN: 'win',
-    CREDITS: 'credits'
+    CREDITS: 'credits',
+    SELECT_CHARACTER: 'select_character'
 };
 
 function copyMap(map) {
@@ -20,6 +21,7 @@ class StageManager {
         this.currentStage = null;
         this.stages = {};
         this.stageType = STAGE_TYPE.INTRO;
+        this.lastDeltaTime = 16.67;
         
         this.registerStage(STAGE_TYPE.INTRO, new IntroStage(this.game));
         this.registerStage(STAGE_TYPE.DEMO, new DemoStage(this.game));
@@ -27,6 +29,7 @@ class StageManager {
         this.registerStage(STAGE_TYPE.GAMEOVER, new GameOverStage(this.game));
         this.registerStage(STAGE_TYPE.WIN, new WinStage(this.game));
         this.registerStage(STAGE_TYPE.CREDITS, new CreditsStage(this.game));
+        this.registerStage(STAGE_TYPE.SELECT_CHARACTER, new SelectCharacterStage(this.game));
     }
 
     init() {
@@ -64,6 +67,7 @@ class StageManager {
     }
 
     update(deltaTime) {
+        this.lastDeltaTime = deltaTime;
 
         if (this.currentStage && this.currentStage.update) {
             const nextStage = this.currentStage.update(deltaTime);
@@ -74,9 +78,9 @@ class StageManager {
         }
     }
 
-    render() {
+    render(_deltaTime) {
         if (this.currentStage && this.currentStage.render) {
-            this.currentStage.render();
+            this.currentStage.render(this.lastDeltaTime);
         }
     }
 }
@@ -89,7 +93,7 @@ class BaseStage {
     onEnter(options = {}) {}
     onExit() {}
     update(deltaTime) { return null; }
-    render() {}
+    render(_deltaTime) {}
 }
 
 class DemoStage extends BaseStage {
@@ -131,7 +135,7 @@ class DemoStage extends BaseStage {
         this.game.sprite.setTileColors(levelNum);
         this.game.sprite.updateStageBuffer(this.game.actualStage);
         this.game.initPelletCount();
-        this.game.initGhosts();
+        this.game.ghosts.forEach(g => g.setMap(this.game.actualStage));
         this.game.resetPositions();
     }
 
@@ -196,20 +200,22 @@ class DemoStage extends BaseStage {
     }
 
     checkCollisions() {
-        this.game.ghosts.forEach(g => {
-            const dist = Math.hypot(g.x - this.game.pacman.x, g.y - this.game.pacman.y);
+        const px = this.game.pacman.x;
+        const py = this.game.pacman.y;
+        
+        for (const g of this.game.ghosts) {
+            const dx = g.x - px;
+            const dy = g.y - py;
+            const distSq = dx * dx + dy * dy;
             
-            if (dist < 0.3) {
+            if (distSq < 0.09) {
                 if (g.mode === "frightened" || g.mode === "flash") {
-                    
-
                     g.die();
-                    
-                    this.game.scoreManager.eatenCounterIncrement(this.game.pacman.x, this.game.pacman.y);
+                    this.game.scoreManager.eatenCounterIncrement(px, py);
                 } else if (g.mode === "scatter" || g.mode === "chase" || g.mode === "reviving") {
                     this.game.isDying = true;
                     this.game.pacman.pauseMovement(true);
-                    this.game.ghosts.forEach(gg => gg.pauseMovement(true));
+                    for (const gg of this.game.ghosts) gg.pauseMovement(true);
                     
                     setTimeout(() => {
                         this.game.isDying = false;
@@ -241,10 +247,10 @@ class DemoStage extends BaseStage {
                     }, 2000);
                 }
             }
-        });
+        }
     }
  
-    render() {
+    render(_deltaTime) {
         this.game.clearScreen();
         
         let flashType = 0;
@@ -326,7 +332,7 @@ class IntroStage extends BaseStage {
         return null;
     }
 
-    render() {
+    render(deltaTime) {
         const { sprite } = this.game;
 
         let flashType = 0;
@@ -387,13 +393,14 @@ class IntroStage extends BaseStage {
             
              
 
-            this.x = this.x - 0.9 * direction;
+            const frameScale = deltaTime / 16.67;
+            this.x = this.x - 1.75 * frameScale * direction;
             
             const pacmanSprite = sprite.getSprite(CONFIG.pacman.type,this.animFrame);
           
             sprite.renderSprite(this.x,300,pacmanSprite,0,(direction === 1));
 
-            this.xGhost = this.xGhost - (direction === 1 ? 0.9 : 0.55) * direction;
+            this.xGhost = this.xGhost - (direction === 1 ? 1.75 : 1.1) * frameScale * direction;
          
 
             if(this.timer < 13650){
@@ -527,15 +534,18 @@ class LevelStage extends BaseStage {
     onEnter(options = {}) {
         this.levelNumber = options.levelNumber || 1;
         this.state = options.state || 'ready';
-        this.readyTimer = CONFIG.game.readyTimer;
+        
+        if (this.game.firstLife) {
+            this.readyTimer = 4;
+            this.game.firstLife = false;
+        } else {
+            this.readyTimer = 1;
+        }
         
         this.loadLevel(this.levelNumber);
         if (this.game.firstGame) {
             this.game.soundManager.play("start");
             this.game.firstGame = false;
-            this.readyTimer = 4;
-        } else {
-            this.readyTimer = 1;
         }
         this.game.pacman.pauseMovement(true);
         this.game.ghosts.forEach(g => g.pauseMovement(true));
@@ -576,10 +586,7 @@ class LevelStage extends BaseStage {
                 this.state = 'playing';
                 this.game.gameState = 'playing';
                 this.game.pacman.pauseMovement(false);
-                const ghosts = this.game.ghosts;
-                for (let i = 0; i < ghosts.length; i++) {
-                    ghosts[i].pauseMovement(false);
-                }
+                this.game.ghosts.forEach(g => g.pauseMovement(false));
                 this.game.soundManager.playSiren();
             }
             return null;
@@ -597,10 +604,7 @@ class LevelStage extends BaseStage {
             this.game.nextLevel();
         }
 
-        const ghosts = this.game.ghosts;
-        for (let i = 0; i < ghosts.length; i++) {
-            ghosts[i].update(deltaTime);
-        }
+        this.game.ghosts.forEach(g => g.update(deltaTime));
 
         this.game.pelletFlashTimer += deltaTime;
         if (this.game.pelletFlashTimer > 200) {
@@ -608,45 +612,36 @@ class LevelStage extends BaseStage {
             this.game.pelletFlash = !this.game.pelletFlash;
         }
 
-        let anyFlash = false;
-        let anyFrightened = false;
-        let anyDead = false;
-        
-        for (let i = 0; i < ghosts.length; i++) {
-            const mode = ghosts[i].mode;
-            if (mode === "flash") anyFlash = true;
-            if (mode === "frightened" || mode === "flash") anyFrightened = true;
-            if (mode === "dead") anyDead = true;
-        }
-        
+        const anyFlash = this.game.ghosts.some(g => g.mode === "flash");
         if (anyFlash) {
             this.game.powerPelletFlash = this.game.pelletFlash;
         } else {
             this.game.powerPelletFlash = false;
         }
         
-        const soundManager = this.game.soundManager;
+        const anyFrightened = this.game.ghosts.some(g => g.mode === "frightened" || g.mode === "flash");
+        const anyDead = this.game.ghosts.some(g => g.mode === "dead");
         
         if (anyDead) {
-            if (soundManager.frightAudio) {
-                soundManager.stopFright();
+            if (this.game.soundManager.frightAudio) {
+                this.game.soundManager.stopFright();
             }
-            if (!soundManager.eyesAudio) {
-                soundManager.playEyes();
+            if (!this.game.soundManager.eyesAudio) {
+                this.game.soundManager.playEyes();
             }
-            soundManager.stopSiren();
+            this.game.soundManager.stopSiren();
         } else if (anyFrightened) {
-            if (soundManager.eyesAudio) {
-                soundManager.stopEyes();
+            if (this.game.soundManager.eyesAudio) {
+                this.game.soundManager.stopEyes();
             }
-            if (!soundManager.frightAudio) {
-                soundManager.playFright();
+            if (!this.game.soundManager.frightAudio) {
+                this.game.soundManager.playFright();
             }
-            soundManager.stopSiren();
-        } else if (soundManager.frightAudio || soundManager.eyesAudio) {
-            soundManager.stopFright();
-            soundManager.stopEyes();
-            soundManager.playSiren();
+            this.game.soundManager.stopSiren();
+        } else if (this.game.soundManager.frightAudio || this.game.soundManager.eyesAudio) {
+            this.game.soundManager.stopFright();
+            this.game.soundManager.stopEyes();
+            this.game.soundManager.playSiren();
         }
         
         this.checkCollisions();
@@ -683,34 +678,41 @@ class LevelStage extends BaseStage {
                 this.game.globalEatPause = false;
                 this.game.pacman.pauseMovement(false);
                 this.game.pacman.isVisible(true);
-                this.game.ghosts.forEach(g => {
-                    if (g.mode !== "dead") {
-                        g.pauseMovement(false);
-                    }
-                });
+                for (const g of this.game.ghosts) {
+                    if (g.mode !== "dead") g.pauseMovement(false);
+                }
             }
             return;
         }
 
-        this.game.ghosts.forEach(g => {
-            const dist = Math.hypot(g.x - this.game.pacman.x, g.y - this.game.pacman.y);
+        const px = this.game.pacman.x;
+        const py = this.game.pacman.y;
+        
+        for (const g of this.game.ghosts) {
+            const dx = g.x - px;
+            const dy = g.y - py;
+            const dist = dx * dx + dy * dy;
             
-            if (dist < 0.3) {
+            if (dist < 0.09) {
                 if (g.mode === "frightened" || g.mode === "flash") {
                     this.game.soundManager.play("eat-ghost");
                     g.die();
-                    this.game.scoreManager.eatenCounterIncrement(this.game.pacman.x, this.game.pacman.y);
+                    this.game.scoreManager.eatenCounterIncrement(px, py);
                     this.game.globalEatPause = true;
                     this.game.globalEatTimer = 1.0;
                     this.game.pacman.pauseMovement(true);
                     this.game.pacman.isVisible(false);
-                    this.game.ghosts.forEach(gg => {
-                        if (gg.mode !== "dead") {
-                            gg.pauseMovement(true);
-                        }
-                    });
+                    for (const gg of this.game.ghosts) {
+                        if (gg.mode !== "dead") gg.pauseMovement(true);
+                    }
                     
-                    const anyFrightenedLeft = this.game.ghosts.some(gg => gg.mode === "frightened" || gg.mode === "flash");
+                    let anyFrightenedLeft = false;
+                    for (const gg of this.game.ghosts) {
+                        if (gg.mode === "frightened" || gg.mode === "flash") {
+                            anyFrightenedLeft = true;
+                            break;
+                        }
+                    }
                     if (!anyFrightenedLeft) {
                         this.game.soundManager.stopFright();
                         this.game.soundManager.playEyes();
@@ -719,10 +721,10 @@ class LevelStage extends BaseStage {
                     this.game.loseLife();
                 }
             }
-        });
+        }
     }
 
-    render() {
+    render(_deltaTime) {
         this.game.clearScreen();
         
         let flashType = 0;
@@ -782,7 +784,7 @@ class GameOverStage extends BaseStage {
         return null;
     }
 
-    render() {
+    render(_deltaTime) {
         this.game.clearScreen();
         this.game.sprite.renderStage(this.game.actualStage);
         this.game.pacman.draw();
@@ -818,7 +820,7 @@ class WinStage extends BaseStage {
         return null;
     }
 
-    render() {
+    render(_deltaTime) {
         this.game.clearScreen();
         this.game.sprite.renderText("YOU WIN!", 170, 270, 5);
         this.game.scoreManager.update();
@@ -841,7 +843,7 @@ class CreditsStage extends BaseStage {
         return null;
     }
 
-    render() {
+    render(_deltaTime) {
         this.game.clearScreen();
        
 
@@ -871,6 +873,54 @@ class CreditsStage extends BaseStage {
     }
 }
 
+class SelectCharacterStage extends BaseStage {
+    constructor(game) {
+        super(game);
+        this.timer = 0;
+        this.selectedIndex = 0;
+    }
+
+    onEnter(options = {}) {
+        this.game.gameState = "select_character";
+        this.timer = 0;
+        this.selectedIndex = this.game.selectedCharacter || 0;
+    }
+
+    update(deltaTime) {
+        this.selectedIndex = this.game.selectedCharacter || 0;
+        this.timer += deltaTime;
+        return null;
+    }
+
+    render(_deltaTime) {
+        this.game.clearScreen();
+         this.game.sprite.renderText("high score", 155, -49, 5);
+        this.game.sprite.renderText("1up", 45, -49, 5);
+        this.game.sprite.renderText("0", 50, -30, 5);
+       
+        
+        this.game.sprite.renderText("select character", 130, 150, 8);
+        
+        const y1 = 230;
+        const y2 = 340;
+        const offset = this.selectedIndex === 0 ? 0 : 0;
+        
+   
+        const pacmanSprite = this.game.sprite.getSprite("pacman", 0);
+        this.game.sprite.renderSprite(160 + offset, y1, pacmanSprite, 0, false);
+        this.game.sprite.renderText("pac-man", 200, y1 + 10, (this.selectedIndex === 0 ? 3 : 5));
+        
+ 
+        const mspacmanSprite = this.game.sprite.getSprite("mspacman", 1);
+        this.game.sprite.renderSprite(160 + (this.selectedIndex === 1 ? 0 : 0), y2, mspacmanSprite, 0, false);
+        this.game.sprite.renderText("ms-pac-man", 200, y2 + 10, (this.selectedIndex === 1 ? 3 : 5));
+
+        if (this.game.credits > 0) {
+            this.game.sprite.renderText(`credit ${this.game.credits}`, 30, 530, 5);
+        }
+    }
+}
+
 class AnimationStage extends BaseStage {
     constructor(game) {
         super(game);
@@ -896,7 +946,7 @@ class AnimationStage extends BaseStage {
         return null;
     }
 
-    render() {
+    render(_deltaTime) {
         if (this.callback) {
             this.callback(this.timer, 0, true);
         }

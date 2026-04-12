@@ -57,12 +57,9 @@ class scoreManager {
         this.sprite.renderText("1up", 45, -49, 5);
         this.sprite.renderText(this.getHighScore().toString(), 250, -30, 5);
         this.sprite.renderText(this.getScore().toString(), 50, -30, 5);
+        localStorage.setItem('highScore', this.getHighScore());
 
         this.draw();
-    }
-    
-    saveHighScore() {
-        localStorage.setItem('highScore', this.getHighScore());
     }
 
     draw(){
@@ -107,10 +104,11 @@ class scoreManager {
     drawLives() {
         const startX = 50;
         const startY = 500;
+        const characterType = this.game.selectedCharacter === 0 ? 'pacman' : 'mspacman';
         
         for (let i = 0; i < this.lives - 1; i++) {
             const dx = startX + (i * 30);
-            this.sprite.renderSprite(dx, startY, this.sprite.getSprite(CONFIG.pacman.type, 2), -Math.PI / 90, false);
+            this.sprite.renderSprite(dx, startY, this.sprite.getSprite(characterType, this.game.selectedCharacter === 0 ? 0 : 1), -Math.PI / 90, false);
         }
     }
 
