@@ -8,24 +8,65 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
-            background: #000; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            min-height: 100vh;
+            
+          
             overflow: hidden;
+            background-color: rgb(249, 236, 1);
         }
         canvas { 
             image-rendering: pixelated;
             image-rendering: crisp-edges;
             will-change: transform;
         }
+
+        .bezel{
+           background: url(img/pacplus.svg) no-repeat top -64px center/850px auto;
+           /*background: url(img/mspacman.svg) no-repeat top -36px center/914px auto;*/
+            width: 100%;
+            position: absolute;
+            height: 100%;
+            position: absolute;
+            left: 0;
+            top: 0;
+            z-index: 0;
+        }
+
+        #game{
+            
+            margin-top: 88px;
+            position: absolute;
+            left: 50%;
+            top: 0px;
+            transform: translateX(-50%);
+            width: 480px;
+            z-index: 1;
+        }
+
+        .side{
+             background:rgb(249, 236, 1) url(img/Pacman-side-art.svg) no-repeat top center/cover;
+           width: 390px;
+            height: 712px;
+            position: absolute;
+            left: 50%;
+            top: 0;
+            margin-left: -815px;
+        }
+
+
+          .side-r{
+            background:rgb(249, 236, 1) url(img/Pacman-side-art.svg) no-repeat top center/cover;
+            width: 390px;
+            height: 712px;
+            position: absolute;
+            right: 50%;
+            top: 0;
+             margin-right: -815px;
+        }
+
     </style>
 </head>
 <body>
-     <canvas id="game" width="500" height="600"></canvas>
-     <br>
-     <button onclick="_game.nextLevel()">Debug: Siguiente Nivel</button>
+     <canvas id="game" width="480" height="600"></canvas>
       <script src="js/config.js"></script>
       <script src="js/sprite.js"></script>
       <script src="js/pacman.js"></script>
@@ -35,6 +76,10 @@
      <script src="js/ghost.js"></script>
      <script src="js/scoreManager.js"></script>
      <script src="js/soundManager.js"></script>
+     <div class="bezel"></div>
+     <div class="side"></div>
+     <div class="side-r"></div>
+
 
      <script>
         const _game = new game('game');

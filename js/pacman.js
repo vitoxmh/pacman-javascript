@@ -19,7 +19,7 @@ const DIRECTION_VECTORS = {
     right: { dx: 1, dy: 0 }
 };
 
-const TILE_IDS = new Set([0, 36, 37, 38, 39]);
+const TILE_IDS = new Set([0, 36, 37, 39]);
 
 class pacman {
 

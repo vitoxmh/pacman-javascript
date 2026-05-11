@@ -79,7 +79,7 @@ const CONFIG = {
     tileColors: {
         1: { color12: '#0000FF', color13: '#000000' },
         2: { color12: '#FF0000', color13: '#FFB7AE' },
-        3: { color12: '#00D900', color13: '#00FF7F' },
+        3: { color12: '#DEDEFF', color13: '#47B7FF' },
         4: { color12: '#00D900', color13: '#00FF7F' }
     },
 

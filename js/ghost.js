@@ -47,9 +47,9 @@ class Ghost {
         
         // Scatter corners
         this.scatterTarget = { x: 1, y: 1 };
-        if (color === "pink")   this.scatterTarget = { x: 30, y: 1 };
-        if (color === "cyan")   this.scatterTarget = { x: 27, y: 1 };
-        if (color === "orange") this.scatterTarget = { x: 27, y: 30 };
+        if (color === "pink")   this.scatterTarget = { x: 27, y: 1 };
+        if (color === "cyan")   this.scatterTarget = { x: 1, y: 27 };
+        if (color === "orange") this.scatterTarget = { x: 27, y: 27 };
 
         // Ghost House
         this.door = { x: 13.5,y: 15 };
@@ -57,9 +57,6 @@ class Ghost {
         
         this.initialReleaseDelay = 0;
       
-
-       
-
 
 
         // --- ESTADOS PAC-MAN ORIGINALES ---

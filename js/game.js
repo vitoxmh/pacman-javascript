@@ -300,6 +300,7 @@ class game{
        
         this.isDying = true;
         this.soundManager.stopSiren();
+        this.soundManager.stopFright();
         
         this.pacman.pauseMovement(true);
         this.ghosts.forEach(g => g.pauseMovement(true));
